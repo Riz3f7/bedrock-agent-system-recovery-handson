@@ -1,0 +1,41 @@
+# AWS Bedrock エージェントハンズオン (リファクタリング版) - 依存関係
+
+# Core Flask dependencies
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# AWS SDK
+boto3==1.34.0
+botocore==1.34.0
+
+# System monitoring (optional for health checks)
+psutil==5.9.6
+
+# Type checking and development tools
+typing-extensions==4.8.0
+
+# JSON handling (built-in, but explicit for clarity)
+# json - built-in module
+
+# Date/time handling (built-in, but explicit for clarity)
+# datetime - built-in module
+
+# Regular expressions (built-in, but explicit for clarity)
+# re - built-in module
+
+# Logging (built-in, but explicit for clarity)
+# logging - built-in module
+
+# Data classes (Python 3.7+, built-in)
+# dataclasses - built-in module
+
+# Development and testing dependencies (optional)
+pytest==7.4.3
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Documentation dependencies (optional)
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0

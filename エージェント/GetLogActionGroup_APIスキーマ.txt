@@ -1,0 +1,68 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Retrieve Error Logs",
+    "description": "Retrieves error logs from CloudWatch Logs based on the specified log group and time range."
+  },
+  "paths": {
+    "/": {
+      "post": {
+        "summary": "Retrieve error logs",
+        "description": "Retrieves error logs from CloudWatch Logs",
+        "operationId": "RetrieveLogs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logGroup": {
+                    "type": "string",
+                    "description": "The name of the log group.",
+                    "example": "/aws/ec2/my-flask-application"
+                  },
+                  "hoursAgo": {
+                    "type": "integer",
+                    "description": "The number of hours back to search for logs.",
+                    "example": 24
+                  }
+                },
+                "required": [
+                  "logGroup",
+                  "hoursAgo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "body": {
+                      "type": "string",
+                      "description": "Error logs in JSON format.",
+                      "example": "[{\"timestamp\": 1678886400000, \"logStreamName\": \"2023/03/15/[$LATEST]xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\", \"message\": \"ERROR: Something went wrong...\"}, ...] "
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    }
+  }
+}

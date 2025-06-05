@@ -1,0 +1,53 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Reboot Instance",
+    "description": "Reboots an EC2 instance."
+  },
+  "paths": {
+    "/": {
+      "post": {
+        "summary": "Reboot an EC2 instance",
+        "description": "Reboots an EC2 instance",
+        "operationId": "RebootInstances",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "query",
+            "description": "The ID of the EC2 instance to reboot.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "body": {
+                      "type": "string",
+                      "description": "A message indicating the result of the action.",
+                      "example": "Successfully rebooted instance i-0xxxxxxxxxxxxxxxxx"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    }
+  }
+}
