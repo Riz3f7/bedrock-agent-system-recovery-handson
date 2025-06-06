@@ -63,6 +63,42 @@ class CloudWatchLogsClient:
         except ClientError as e:
             print(f"Warning: Failed to get events from stream {log_stream_name}: {e}")
             return []
+    
+    def filter_log_events(self, log_group_name: str, start_time: int, end_time: int,
+                         filter_pattern: str = '?ERROR ?Exception ?Traceback') -> List[Dict[str, Any]]:
+        """フィルターパターンを使用してログイベントを効率的に取得"""
+        try:
+            all_events = []
+            next_token = None
+            max_iterations = 10  # 無限ループ防止
+            iteration = 0
+            
+            while iteration < max_iterations:
+                kwargs = {
+                    'logGroupName': log_group_name,
+                    'startTime': start_time,
+                    'endTime': end_time,
+                    'filterPattern': filter_pattern,
+                    'limit': 1000  # 一度に取得する最大イベント数
+                }
+                
+                if next_token:
+                    kwargs['nextToken'] = next_token
+                
+                response = self.client.filter_log_events(**kwargs)
+                events = response.get('events', [])
+                all_events.extend(events)
+                
+                next_token = response.get('nextToken')
+                if not next_token:
+                    break
+                    
+                iteration += 1
+            
+            return all_events
+        except ClientError as e:
+            print(f"Warning: Failed to filter log events: {e}")
+            return []
 
 class LogAnalyzer:
     """ログ分析クラス"""
@@ -156,50 +192,44 @@ class LogRetriever:
         self.analyzer = LogAnalyzer()
     
     def get_error_logs(self, log_group_name: str, hours_ago: int = 24, 
-                      max_streams: int = 50) -> Dict[str, Any]:
-        """エラーログを取得して分析"""
+                      filter_pattern: str = '?ERROR ?Exception ?Traceback') -> Dict[str, Any]:
+        """エラーログを取得して分析（フィルターパターン使用）"""
         try:
             end_time = int(time.time() * 1000)
             start_time = end_time - (hours_ago * 60 * 60 * 1000)
             
-            # ログストリームを取得
-            log_streams = self.cloudwatch_client.get_log_streams(log_group_name, max_streams)
+            # フィルターパターンを使用してエラーログを直接取得
+            filtered_events = self.cloudwatch_client.filter_log_events(
+                log_group_name, start_time, end_time, filter_pattern
+            )
             
-            if not log_streams:
+            if not filtered_events:
                 return {
-                    'status': 'no_streams',
-                    'message': f'No log streams found in {log_group_name}',
+                    'status': 'no_errors',
+                    'message': f'No error logs found in {log_group_name} for the past {hours_ago} hours',
                     'error_logs': [],
                     'summary': self._create_empty_summary()
                 }
             
             error_logs = []
-            processed_streams = 0
+            log_stream_names = set()
             
-            for log_stream in log_streams:
-                log_stream_name = log_stream['logStreamName']
+            for event in filtered_events:
+                log_stream_name = event.get('logStreamName', 'unknown')
+                log_stream_names.add(log_stream_name)
                 
-                # ログイベントを取得
-                events = self.cloudwatch_client.get_log_events(
-                    log_group_name, log_stream_name, start_time, end_time
-                )
+                # ログエントリを分析
+                log_entry = self.analyzer.analyze_log_entry(event, log_stream_name)
                 
-                for event in events:
-                    log_entry = self.analyzer.analyze_log_entry(event, log_stream_name)
-                    
-                    # エラーログのみを収集
-                    if self.analyzer.is_error_log(log_entry.message):
-                        error_logs.append({
-                            'timestamp': log_entry.timestamp,
-                            'datetime': datetime.fromtimestamp(log_entry.timestamp / 1000).isoformat(),
-                            'logStreamName': log_entry.log_stream_name,
-                            'message': log_entry.message,
-                            'severity': log_entry.severity,
-                            'instanceId': log_entry.instance_id,
-                            'errorType': log_entry.error_type
-                        })
-                
-                processed_streams += 1
+                error_logs.append({
+                    'timestamp': log_entry.timestamp,
+                    'datetime': datetime.fromtimestamp(log_entry.timestamp / 1000).isoformat(),
+                    'logStreamName': log_entry.log_stream_name,
+                    'message': log_entry.message,
+                    'severity': log_entry.severity,
+                    'instanceId': log_entry.instance_id,
+                    'errorType': log_entry.error_type
+                })
             
             # 結果をタイムスタンプでソート（新しい順）
             error_logs.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -207,11 +237,12 @@ class LogRetriever:
             return {
                 'status': 'success',
                 'error_logs': error_logs,
-                'summary': self._create_summary(error_logs, processed_streams, hours_ago),
+                'summary': self._create_summary(error_logs, len(log_stream_names), hours_ago),
                 'metadata': {
                     'log_group': log_group_name,
                     'time_range_hours': hours_ago,
-                    'processed_streams': processed_streams,
+                    'processed_streams': len(log_stream_names),
+                    'filter_pattern': filter_pattern,
                     'query_time': datetime.utcnow().isoformat()
                 }
             }
