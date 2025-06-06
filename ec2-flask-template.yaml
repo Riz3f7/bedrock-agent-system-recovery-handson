@@ -1,0 +1,182 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template to deploy a Flask application on Amazon Linux 2023 with Session Manager access'
+
+Parameters:
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+    ConstraintDescription: Must be a valid EC2 instance type.
+    
+  VpcId:
+    Description: VPC where the EC2 instance will be deployed
+    Type: AWS::EC2::VPC::Id
+    
+  SubnetId:
+    Description: Public subnet ID where the EC2 instance will be deployed
+    Type: AWS::EC2::Subnet::Id
+
+Resources:
+  FlaskAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP access
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  FlaskAppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Path: /
+
+  FlaskAppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref FlaskAppRole
+
+  FlaskAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref FlaskAppInstanceProfile
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AL2023AMI]
+      MetadataOptions:
+        HttpTokens: optional  # IMDSv1を有効化（トークン不要）
+        HttpEndpoint: enabled
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          SubnetId: !Ref SubnetId
+          GroupSet:
+            - !Ref FlaskAppSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # Update system packages
+          dnf update -y
+          
+          # Install Python and pip (curl and wget are already installed)
+          dnf install -y python3 python3-pip
+          
+          # Install required Python packages
+          pip3 install flask requests
+          
+          # Create application directory
+          mkdir -p /opt/flask-app
+          
+          # Download application code from S3
+          wget -O /opt/flask-app/app.py https://handson-resource-yamamugi.s3.amazonaws.com/jawsug/202507handson/app-optimized.py
+          
+          # Create systemd service file
+          cat > /etc/systemd/system/flask-app.service << 'EOL'
+          [Unit]
+          Description=Flask Application Service
+          After=network.target
+
+          [Service]
+          User=root
+          WorkingDirectory=/opt/flask-app
+          ExecStart=/usr/bin/python3 /opt/flask-app/app.py
+          Restart=always
+          Environment=PORT=80
+          Environment=FLASK_DEBUG=False
+
+          [Install]
+          WantedBy=multi-user.target
+          EOL
+          
+          # Install CloudWatch Agent
+          dnf install -y amazon-cloudwatch-agent
+          
+          # Configure CloudWatch Agent
+          cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOL'
+          {
+            "agent": {
+              "metrics_collection_interval": 60,
+              "run_as_user": "root"
+            },
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/my-flask-app.log",
+                      "log_group_name": "/aws/ec2/my-flask-application",
+                      "log_stream_name": "{instance_id}",
+                      "retention_in_days": 14
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          EOL
+          
+          # Start CloudWatch Agent
+          systemctl enable amazon-cloudwatch-agent
+          systemctl start amazon-cloudwatch-agent
+          
+          # Enable and start the Flask application
+          systemctl daemon-reload
+          systemctl enable flask-app
+          systemctl start flask-app
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AL2023AMI: ami-05c13eab67c5d8861
+    us-east-2:
+      AL2023AMI: ami-0e83be366243f524a
+    us-west-1:
+      AL2023AMI: ami-0ce2cb35386fc22e9
+    us-west-2:
+      AL2023AMI: ami-0b75c1e8f5c9b860a
+    ap-northeast-1:
+      AL2023AMI: ami-0d52744dc1592a3a4
+    ap-northeast-2:
+      AL2023AMI: ami-0f3a440bbcff3d043
+    ap-southeast-1:
+      AL2023AMI: ami-0fb7b398d3ee1c9ab
+    ap-southeast-2:
+      AL2023AMI: ami-0d6f74b9139d26623
+    eu-west-1:
+      AL2023AMI: ami-0e23c576dacf2e3df
+    eu-central-1:
+      AL2023AMI: ami-0faab6bdbac9486fb
+
+Outputs:
+  InstanceId:
+    Description: The Instance ID
+    Value: !Ref FlaskAppInstance
+  PublicIP:
+    Description: Public IP address of the EC2 instance
+    Value: !GetAtt FlaskAppInstance.PublicIp
+  WebsiteURL:
+    Description: URL for the Flask application
+    Value: !Sub http://${FlaskAppInstance.PublicDnsName}
+  SessionManagerURL:
+    Description: URL to connect to the instance using Session Manager
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/systems-manager/session-manager/${FlaskAppInstance}
+  LogGroupURL:
+    Description: URL to the CloudWatch Logs group
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logsV2:log-groups/log-group/$252Faws$252Fec2$252Fmy-flask-application
