@@ -1,5 +1,5 @@
 """
-EC2 インスタンス再起動 Lambda 関数 (リファクタリング版)
+EC2 インスタンス再起動 Lambda 関数
 Claude 3.5/4 Sonnet 最適化
 """
 

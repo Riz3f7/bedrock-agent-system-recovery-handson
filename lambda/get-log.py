@@ -1,5 +1,5 @@
 """
-CloudWatch Logs 取得 Lambda 関数 (リファクタリング版)
+CloudWatch Logs 取得 Lambda 関数
 Claude 3.5/4 Sonnet 最適化
 """
 
