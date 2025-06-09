@@ -150,10 +150,6 @@ bedrock-agent-system-recovery-handson/
 - [CloudWatch Logs API リファレンス](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/)
 - [EC2 API リファレンス](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/)
 
-## 📄 ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。
-
 ---
 
 **注意**: このプロジェクトはデモ・学習目的です。本番環境での使用には、適切なセキュリティ設定、監視、バックアップ戦略の実装が必要です。
