@@ -26,17 +26,16 @@ AWS Bedrockエージェントの力を活用して、システム障害の検出
 
 ```
 bedrock-agent-system-recovery-handson/
-├── README.md                          # このファイル
-├── ハンズオン手順書.md                 # 詳細な構築手順
-├── ec2-flask-template.yaml            # CloudFormationテンプレート
-├── lambda/
-│   ├── get-log.py                     # ログ取得Lambda関数
-│   └── reboot-instances.py            # インスタンス再起動Lambda関数
+├── README.md                                      # このファイル
+├── ハンズオン手順書.md                             # 詳細な構築手順
+├── bedrock-agent-env-template.yaml                # CloudFormationテンプレート（全リソース一括作成）
 └── エージェント/
-    ├── GetLogActionGroup_APIスキーマ.txt
-    ├── reboot-instances-actiongroup_APIスキーマ.txt
-    └── エージェントへの指示.txt
+    ├── GetLogActionGroup_APIスキーマ.txt           # ログ取得アクション用APIスキーマ
+    ├── reboot-instances-actiongroup_APIスキーマ.txt # 再起動アクション用APIスキーマ
+    └── エージェントへの指示.txt                     # エージェント設定用指示文
 ```
+
+**注意**: Lambda関数のソースコードはCloudFormationテンプレート内に直接埋め込まれています。
 
 ## 🚀 クイックスタート
 
@@ -50,37 +49,36 @@ bedrock-agent-system-recovery-handson/
 
 ### 手順概要
 1. **事前準備**: Amazon Nova Pro の有効化
-2. **EC2インスタンスの準備**: CloudFormationによる自動構築
-3. **IAMロールの作成**: Lambda実行用権限設定
-4. **Lambda関数の作成**: ログ分析・再起動機能の実装
-5. **Bedrock エージェントの作成**: エージェントとアクショングループの設定
-6. **テストと動作確認**: 実際のトラブルシューティングテスト
+2. **全システムの自動構築**: CloudFormationによる一括デプロイ（EC2、Lambda、IAMロール）
+3. **Lambda関数のテスト**: 個別機能の動作確認
+4. **Bedrock エージェントの作成**: エージェントとアクショングループの設定
+5. **エージェントのテスト**: 実際のトラブルシューティングテスト
+6. **動作確認**: CloudWatch Logsとシステム全体の確認
 
 詳細な手順は [ハンズオン手順書.md](./ハンズオン手順書.md) を参照してください。
 
 ## 🔧 主要コンポーネント
 
-### 1. CloudFormationテンプレート (`ec2-flask-template.yaml`)
-- Amazon Linux 2023ベースのEC2インスタンス
-- Flaskアプリケーションの自動デプロイ
+### 1. EC2インスタンス **(CloudFormation自動作成)**
+- Amazon Linux 2023ベース
+- Flaskアプリケーション自動デプロイ
+- CloudWatch Agentによるログ収集
 - Session Manager接続設定
-- CloudWatch Agent設定
 
-### 2. ログ取得Lambda (`lambda/get-log.py`)
-- CloudWatch Logsからエラーログを取得
-- ログの重要度分析
-- インスタンスID抽出
-- 統計情報の生成
+### 2. Lambda関数 **(CloudFormation自動作成)**
+- **get-log関数**: CloudWatch Logsからエラーログを取得・分析
+- **reboot-instances関数**: EC2インスタンスの安全な再起動
+- Bedrockエージェント連携用レスポンス形式
 
-### 3. インスタンス再起動Lambda (`lambda/reboot-instances.py`)
-- EC2インスタンスの安全な再起動
-- 事前チェックと検証
-- ドライラン機能
+### 3. IAMロール・ポリシー **(CloudFormation自動作成)**
+- Lambda実行用権限
+- CloudWatch Logs読み取り権限
+- EC2操作権限
 
-### 4. Bedrockエージェント設定
+### 4. Bedrockエージェント **(手動作成)**
 - 自然言語でのシステム操作
-- アクショングループによるLambda連携
-- 安全性を重視した操作確認
+- 2つのアクショングループ（ログ取得・再起動）
+- Amazon Nova Proモデル使用
 
 ## 🎮 使用例
 
@@ -142,13 +140,6 @@ bedrock-agent-system-recovery-handson/
 
 ### 改善提案
 このプロジェクトへの改善提案やバグ報告は、Issues経由でお知らせください。
-
-## 📚 参考資料
-
-- [AWS Bedrock エージェント開発ガイド](https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html)
-- [Amazon Nova Pro モデル詳細](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-nova.html)
-- [CloudWatch Logs API リファレンス](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/)
-- [EC2 API リファレンス](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/)
 
 ---
 

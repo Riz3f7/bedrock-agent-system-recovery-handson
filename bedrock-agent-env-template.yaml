@@ -2,6 +2,14 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'CloudFormation template to deploy a Flask application on Amazon Linux 2023 with Session Manager access'
 
 Parameters:
+  VpcId:
+    Description: VPC where the EC2 instance will be deployed
+    Type: AWS::EC2::VPC::Id
+    
+  SubnetId:
+    Description: Public subnet ID where the EC2 instance will be deployed
+    Type: AWS::EC2::Subnet::Id
+    
   InstanceType:
     Description: EC2 instance type
     Type: String
@@ -11,14 +19,6 @@ Parameters:
       - t3.small
       - t3.medium
     ConstraintDescription: Must be a valid EC2 instance type.
-    
-  VpcId:
-    Description: VPC where the EC2 instance will be deployed
-    Type: AWS::EC2::VPC::Id
-    
-  SubnetId:
-    Description: Public subnet ID where the EC2 instance will be deployed
-    Type: AWS::EC2::Subnet::Id
 
 Resources:
   FlaskAppSecurityGroup:
@@ -104,7 +104,7 @@ Resources:
         ZipFile: |
           """
           CloudWatch Logs 取得 Lambda 関数
-          Claude 3.5/4 Sonnet 最適化
+          AWS Bedrock Agent 最適化
           """
           
           import boto3
@@ -491,12 +491,12 @@ Resources:
       Handler: index.lambda_handler
       Role: !GetAtt BedrockAgentLambdaRole.Arn
       Timeout: 300
-      MemorySize: 512
+      MemorySize: 256
       Code:
         ZipFile: |
           """
           EC2 インスタンス再起動 Lambda 関数
-          Claude 3.5/4 Sonnet 最適化
+          AWS Bedrock Agent 最適化
           """
           
           import boto3
@@ -978,3 +978,12 @@ Outputs:
   BedrockAgentLambdaRoleArn:
     Description: ARN of the Bedrock Agent Lambda Role
     Value: !GetAtt BedrockAgentLambdaRole.Arn
+  IAMRoleURL:
+    Description: URL to view the IAM role in AWS Console
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/iamv2/home?region=${AWS::Region}#/roles/details/${BedrockAgentLambdaRole}
+  EC2InstanceURL:
+    Description: URL to view the EC2 instance in AWS Console
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/ec2/home?region=${AWS::Region}#InstanceDetails:instanceId=${FlaskAppInstance}
+  CloudWatchLogsURL:
+    Description: URL to view CloudWatch Logs
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logsV2:log-groups/log-group/$252Faws$252Fec2$252Fmy-flask-application
