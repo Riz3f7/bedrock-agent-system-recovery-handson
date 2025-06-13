@@ -832,6 +832,9 @@ Resources:
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref FlaskAppInstanceProfile
       ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AL2023AMI]
+      Tags:
+        - Key: Name
+          Value: Bedrock-Agent-handson
       MetadataOptions:
         HttpTokens: optional  # IMDSv1を有効化（トークン不要）
         HttpEndpoint: enabled
