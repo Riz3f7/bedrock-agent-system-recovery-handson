@@ -50,10 +50,11 @@ bedrock-agent-system-recovery-handson/
 ### 手順概要
 1. **事前準備**: Amazon Nova Pro の有効化
 2. **全システムの自動構築**: CloudFormationによる一括デプロイ（EC2、Lambda、IAMロール）
-3. **Lambda関数のテスト**: 個別機能の動作確認
-4. **Bedrock エージェントの作成**: エージェントとアクショングループの設定
-5. **エージェントのテスト**: 実際のトラブルシューティングテスト
-6. **動作確認**: CloudWatch Logsとシステム全体の確認
+3. **作成されたリソースの確認**: CloudFormationで自動作成されたリソースの確認
+4. **Lambda関数のテスト**: 個別機能の動作確認
+5. **Bedrock エージェントの作成**: エージェントとアクショングループの設定
+6. **エージェントのテスト**: 実際のトラブルシューティングテスト
+7. **動作確認**: CloudWatch Logsとシステム全体の確認
 
 詳細な手順は [ハンズオン手順書.md](./ハンズオン手順書.md) を参照してください。
 
@@ -125,11 +126,11 @@ bedrock-agent-system-recovery-handson/
 
 ハンズオン完了後は、コストを避けるため以下の順序でリソースを削除してください：
 
-1. Bedrock エージェント
-2. Lambda関数
-3. IAMロール・ポリシー
-4. CloudFormationスタック
-5. CloudWatch Logs
+1. **Bedrock エージェント**（手動削除）
+2. **CloudFormationスタック**（Lambda関数、IAMロール、EC2インスタンスが自動削除）
+3. **CloudWatch Logs**（手動削除）
+
+CloudFormationスタックの削除により、Lambda関数とIAMロールは自動的に削除されるため、手動での削除は不要です。
 
 詳細な削除手順は [ハンズオン手順書.md](./ハンズオン手順書.md) の「クリーンアップ」セクションを参照してください。
 
