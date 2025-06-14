@@ -19,6 +19,11 @@ Parameters:
       - t3.small
       - t3.medium
     ConstraintDescription: Must be a valid EC2 instance type.
+    
+  LatestAmazonLinux2023AMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 AMI from SSM Parameter Store
 
 Resources:
   FlaskAppSecurityGroup:
@@ -831,7 +836,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref FlaskAppInstanceProfile
-      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AL2023AMI]
+      ImageId: !Ref LatestAmazonLinux2023AMI
       Tags:
         - Key: Name
           Value: Bedrock-Agent-handson
@@ -933,28 +938,7 @@ Resources:
       Principal: bedrock.amazonaws.com
       SourceArn: !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/*
 
-Mappings:
-  RegionMap:
-    us-east-1:
-      AL2023AMI: ami-05c13eab67c5d8861
-    us-east-2:
-      AL2023AMI: ami-0e83be366243f524a
-    us-west-1:
-      AL2023AMI: ami-0ce2cb35386fc22e9
-    us-west-2:
-      AL2023AMI: ami-0b75c1e8f5c9b860a
-    ap-northeast-1:
-      AL2023AMI: ami-0d52744dc1592a3a4
-    ap-northeast-2:
-      AL2023AMI: ami-0f3a440bbcff3d043
-    ap-southeast-1:
-      AL2023AMI: ami-0fb7b398d3ee1c9ab
-    ap-southeast-2:
-      AL2023AMI: ami-0d6f74b9139d26623
-    eu-west-1:
-      AL2023AMI: ami-0e23c576dacf2e3df
-    eu-central-1:
-      AL2023AMI: ami-0faab6bdbac9486fb
+
 
 Outputs:
   InstanceId:
